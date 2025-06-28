@@ -1,0 +1,9 @@
+@ChatAppAIWeb_HostAddress = http://localhost:5074
+
+POST {{ChatAppAIWeb_HostAddress}}/extract-person/
+Accept: application/json
+Content-Type: application/json
+
+{
+  "prompt": "Jack Brown, only 4 years old, knew it all too well"
+}
