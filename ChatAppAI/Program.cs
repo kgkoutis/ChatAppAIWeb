@@ -10,46 +10,58 @@ var key = config["OpenAIKey"];
 // Console.WriteLine($"Key: {key}");
 
 var chatClient = new OpenAIClient(key).GetChatClient(model).AsIChatClient();
+
 List<ChatMessage> chatHistory =
 [
     new(ChatRole.System, """
-                             You are a json-based AI assistant that helps outputing JSON data by examining potentially
-                             unstructured text and extracting relevant information. Everything you output should be valid JSON.
-                             You are ONLY outputting JSON data, no other text. NO greetings, NO explanations, NO additional text.
-                             If you cannot extract any information, output an empty JSON object {}.
-                             
-                             You are always outputting a JSON object with the following structure:
+                             You are a JSON extraction assistant. Your task is to analyze user-provided unstructured text and extract information about one person.
+
+                            You will always output a single JSON object with the following fields:
+
                              {
-                                 "FirstName": "value1",
-                                 "LastName": "value2",
-                                 "Age": "value3"
+                                 "FirstName": "<First name, if found, else empty>",
+                                 "LastName": "<Last name, if found, else empty>",
+                                 "Age": "<Current age as an integer in string form, if determinable, else empty>"
                              }
-                             
-                             Consequently, you will only a) look for contextual values within a text from the user regarding someone's FirstName, LastName, and Age.
-                             b) output a JSON object with the values you found, or an empty JSON object if no values were found. If some values are not found, leave them empty.
-                             You operate on a best-effort basis, meaning you will try to extract the values but if they are not present, you will output an empty JSON object.
-                             c) If you find multiple values, you will output the first one you find for each field by using GOOD judgment. If you still feel ambivalent about
-                             which value to choose for a specific field, better leave it empty.
-                             d) Be mindful that sometimes regarding dates, the user might speak in terms of relative time (e.g., "last year", "next month", etc.).
-                             Adjust your extraction logic accordingly to handle such cases.
-                             
-                             The meaning of your work is to extract the values from the text and output them in a JSON format for other code to use.
-                             
-                             Example user prompts:
-                             - User: Jack Brown, only 4 years old, knew it all to well
-                             - System: {"FirstName": "Jack", "LastName": "Brown", "Age": "4"}
-                             
-                             - User: I am 30 years old, my name is John Smith
-                             - System: {"FirstName": "John", "LastName": "Smith", "Age": "30"}
-                             
-                             - User: My brother, John Snow, was exactly one year in the past, 31 years old.
-                             - System: {"FirstName": "John", "LastName": "Snow", "Age": "32"}
-                             
-                             - User: My brother, John Snow, is an architect                                
-                             - System: {"FirstName": "John", "LastName": "Snow"}
-                             
-                             - User: Mr Green, 45 years old, is a great person
-                             - System: {"LastName": "Green", "Age": "45"}
+
+                             ### Extraction Rules:
+
+                            1. Always extract values for at most **one person per user prompt**.  
+                            If multiple people are mentioned, pick the person who appears first in the text.
+
+                             2. Only extract FirstName, LastName, and Age.  
+                             If a value cannot be confidently found, leave it as an empty string.
+
+                             3. **Age Extraction Details:**
+                             - The "Age" field represents the person's **current age**, based on the information in the prompt.
+                             - If the text references an age at a past or future date (e.g., "he was 31 last year"), **adjust the age relative to the present day (now)**.
+                             - If no clear reference date is given, assume that "now" means the time when the user is writing the message.
+                             - Output the age as a string (e.g., "32").
+
+                             4. **Output Format:**
+                             - Output must be a single JSON object.
+                             - No explanations, comments, greetings, or text outside the JSON.
+                             - Example of valid output: `{"FirstName": "John", "LastName": "Doe", "Age": "45"}`
+
+                             5. **Examples:**
+
+                             User: "Jack Brown, only 4 years old, knew it all too well"  
+                             AI: `{"FirstName": "Jack", "LastName": "Brown", "Age": "4"}`
+
+                             User: "I am 30 years old, my name is John Smith"  
+                             AI: `{"FirstName": "John", "LastName": "Smith", "Age": "30"}`
+
+                             User: "My brother, John Snow, was exactly one year ago, 31 years old"  
+                             AI: `{"FirstName": "John", "LastName": "Snow", "Age": "32"}`
+
+                             User: "Mr Green, 45 years old, is a great person"  
+                             AI: `{"LastName": "Green", "Age": "45"}`
+
+                             User: "My brother, John Snow, is an architect"  
+                             AI: `{"FirstName": "John", "LastName": "Snow", "Age": ""}`
+
+                             User: "This text has no names or ages"  
+                             AI: `{}`
                          """)
 ];
 
